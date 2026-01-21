@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作随手记 - 远程同步版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .auth-hidden { display: none !important; }
+        .blur-body { filter: blur(10px); pointer-events: none; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- 登录锁定层 -->
+    <div id="authOverlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/95 backdrop-blur-sm transition-all duration-300">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm mx-4">
+            <h2 class="text-xl font-bold text-center mb-6">请输入管理密码</h2>
+            <input type="password" id="pwInput" placeholder="••••••" class="w-full px-4 py-3 bg-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-center text-2xl tracking-widest mb-4">
+            <button onclick="checkAuth()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all active:scale-95">验证并进入</button>
+            <p id="err" class="text-red-500 text-xs text-center mt-3 hidden">密码错误，请检查环境变量设置</p>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="mainApp" class="blur-body max-w-6xl mx-auto px-4 py-8">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-black text-gray-800 tracking-tight">工作随手记 <span class="text-blue-500">.</span></h1>
+            <div class="flex items-center gap-4">
+                <span id="status" class="text-[10px] text-green-500 font-bold uppercase tracking-widest">Worker Online</span>
+                <button onclick="logout()" class="text-xs text-gray-400 hover:text-red-500">退出</button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- 表单 -->
+            <div class="lg:col-span-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <form id="workForm" class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">日期</label>
+                            <input type="date" id="log_date" required class="w-full px-4 py-2 bg-gray-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">对接人</label>
+                                <input type="text" id="contact" required placeholder="姓名" class="w-full px-4 py-2 bg-gray-50 border rounded-xl outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">方式</label>
+                                <select id="mode" class="w-full px-4 py-2 bg-gray-50 border rounded-xl outline-none bg-white">
+                                    <option value="电话">电话</option>
+                                    <option value="微信">微信</option>
+                                    <option value="现场">现场</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">所属公司</label>
+                            <input type="text" id="company" required placeholder="公司名称" class="w-full px-4 py-2 bg-gray-50 border rounded-xl outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">具体内容</label>
+                            <textarea id="content" rows="3" required placeholder="沟通内容..." class="w-full px-4 py-2 bg-gray-50 border rounded-xl outline-none resize-none"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">后续处理</label>
+                            <input type="text" id="follow_up" required placeholder="待办事项" class="w-full px-4 py-2 bg-gray-50 border rounded-xl outline-none">
+                        </div>
+                        <button type="submit" id="saveBtn" class="w-full bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95">保存记录</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 列表 -->
+            <div class="lg:col-span-8">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="p-4 border-b bg-gray-50/50 flex items-center gap-3">
+                        <input type="text" id="search" placeholder="搜索关键词..." class="w-full bg-white px-4 py-2 rounded-xl text-sm border outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 text-gray-400 text-[10px] uppercase font-black tracking-widest">
+                                <tr>
+                                    <th class="px-6 py-4">时间/对接人</th>
+                                    <th class="px-6 py-4">核心内容</th>
+                                    <th class="px-6 py-4 text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="list" class="divide-y divide-gray-50 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 请在此处填写你的 Cloudflare Worker 链接 ---
+        const API_BASE = "https://work-log-api.lukinzpkjstk.workers.dev/"; 
+
+        let allLogs = [];
+
+        // 核心 Fetch 封装
+        async function fetchAPI(path, options = {}) {
+            const pwd = sessionStorage.getItem('app_pwd');
+            const headers = { ...options.headers, 'X-Auth-Key': pwd, 'Content-Type': 'application/json' };
+            const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+            if (res.status === 401) { logout(); throw "Unauthorized"; }
+            return res;
+        }
+
+        async function checkAuth() {
+            const p = document.getElementById('pwInput').value;
+            try {
+                const res = await fetch(`${API_BASE}/api/logs`, { headers: { 'X-Auth-Key': p } });
+                if (res.ok) {
+                    sessionStorage.setItem('app_pwd', p);
+                    unlockApp();
+                } else { throw "Error"; }
+            } catch (e) {
+                document.getElementById('err').classList.remove('hidden');
+            }
+        }
+
+        function unlockApp() {
+            document.getElementById('authOverlay').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('mainApp').classList.remove('blur-body');
+            loadLogs();
+        }
+
+        function logout() { sessionStorage.removeItem('app_pwd'); location.reload(); }
+
+        async function loadLogs() {
+            try {
+                const res = await fetchAPI('/api/logs');
+                allLogs = await res.json();
+                renderLogs(allLogs);
+            } catch(e) {}
+        }
+
+        function renderLogs(data) {
+            const body = document.getElementById('list');
+            body.innerHTML = data.map(log => `
+                <tr class="hover:bg-blue-50/30 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="text-[10px] font-bold text-gray-300">${log.log_date}</div>
+                        <div class="text-blue-600 font-bold">${log.contact}</div>
+                        <div class="text-[10px] text-gray-400 truncate w-32">${log.company}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2 mb-1">
+                            <span class="text-[10px] px-1 bg-gray-100 text-gray-500 rounded font-bold">${log.mode}</span>
+                            <span class="text-[10px] text-orange-600 font-bold">待办: ${log.follow_up}</span>
+                        </div>
+                        <p class="text-gray-600 line-clamp-1">${log.content}</p>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="delLog(${log.id})" class="text-gray-200 hover:text-red-500 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('workForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            const payload = {
+                log_date: document.getElementById('log_date').value,
+                contact: document.getElementById('contact').value,
+                mode: document.getElementById('mode').value,
+                company: document.getElementById('company').value,
+                content: document.getElementById('content').value,
+                follow_up: document.getElementById('follow_up').value,
+                remarks: ""
+            };
+            await fetchAPI('/api/logs', { method: 'POST', body: JSON.stringify(payload) });
+            document.getElementById('workForm').reset();
+            setToday();
+            loadLogs();
+            btn.disabled = false;
+        };
+
+        async function delLog(id) {
+            if (confirm('确认删除？')) {
+                await fetchAPI(`/api/logs/${id}`, { method: 'DELETE' });
+                loadLogs();
+            }
+        }
+
+        function setToday() { document.getElementById('log_date').value = new Date().toISOString().split('T')[0]; }
+
+        window.onload = () => {
+            setToday();
+            if (sessionStorage.getItem('app_pwd')) unlockApp();
+            document.getElementById('pwInput').onkeypress = (e) => e.key === 'Enter' && checkAuth();
+        };
+
+        document.getElementById('search').oninput = (e) => {
+            const q = e.target.value.toLowerCase();
+            renderLogs(allLogs.filter(l => l.contact.toLowerCase().includes(q) || l.company.toLowerCase().includes(q) || l.content.toLowerCase().includes(q)));
+        };
+    </script>
+</body>
+</html>
