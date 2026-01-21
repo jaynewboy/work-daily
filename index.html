@@ -3,112 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工作随手记 - 远程同步版</title>
+    <title>工作随手记 - 远程版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         #appMain.is-locked { filter: blur(20px); pointer-events: none; user-select: none; }
-        .transition-all { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen font-sans text-slate-900">
 
     <!-- 验证遮罩层 -->
-    <div id="authOverlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-md transition-all">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm mx-4 text-center">
-            <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+    <div id="authOverlay" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-md transition-all duration-500">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm mx-4">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold mb-2 text-slate-800">安全验证</h2>
+                <p class="text-slate-500 text-sm">请输入访问密码同步数据</p>
             </div>
-            <h2 class="text-2xl font-bold mb-2">欢迎回来</h2>
-            <p class="text-slate-500 text-sm mb-6">请输入访问密码以同步云端数据</p>
-            <input type="password" id="pw" placeholder="••••••" class="w-full px-4 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-center text-2xl tracking-[0.5em] mb-4">
+            <input type="password" id="pw" placeholder="输入密码" class="w-full px-4 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-center text-2xl tracking-[0.5em] mb-4">
             <button onclick="doLogin()" id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95">验证并解锁</button>
-            <p id="error" class="text-red-500 text-xs mt-4 opacity-0 transition-opacity font-medium">密码错误，请检查 Cloudflare 环境变量</p>
+            <p id="error" class="text-red-500 text-xs mt-4 opacity-0 transition-opacity text-center font-medium"></p>
         </div>
     </div>
 
     <!-- 主程序 -->
-    <div id="appMain" class="is-locked max-w-6xl mx-auto px-4 py-8 lg:py-12 transition-all">
+    <div id="appMain" class="is-locked max-w-6xl mx-auto px-4 py-8 lg:py-12">
         <header class="flex justify-between items-end mb-10">
-            <div>
-                <h1 class="text-3xl font-black tracking-tight text-slate-800">工作随手记<span class="text-indigo-600">.</span></h1>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Cloudflare D1 Storage Enabled</p>
-            </div>
-            <button onclick="doLogout()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors">退出登录</button>
+            <h1 class="text-3xl font-black text-slate-800">工作随手记<span class="text-indigo-600">.</span></h1>
+            <button onclick="doLogout()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-red-500 transition-colors">安全退出</button>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- 录入表单 -->
             <div class="lg:col-span-4">
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 sticky top-8">
                     <form id="logForm" class="space-y-4">
                         <div>
                             <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">日期</label>
-                            <input type="date" id="log_date" required class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                            <input type="date" id="log_date" required class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">对接人</label>
-                                <input type="text" id="contact" required placeholder="姓名" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">沟通方式</label>
-                                <select id="mode" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                                    <option value="电话">电话</option>
-                                    <option value="微信">微信</option>
-                                    <option value="现场">现场</option>
-                                </select>
-                            </div>
+                            <input type="text" id="contact" required placeholder="对接人" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
+                            <select id="mode" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="电话">电话</option>
+                                <option value="微信">微信</option>
+                                <option value="现场">现场</option>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">所属公司</label>
-                            <input type="text" id="company" required placeholder="公司名称" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">具体内容</label>
-                            <textarea id="content" rows="4" required placeholder="沟通内容..." class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">后续处理</label>
-                            <input type="text" id="follow_up" required placeholder="后续待办事项" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">备注</label>
-                            <input type="text" id="remarks" placeholder="补充信息" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <button type="submit" id="saveBtn" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98]">
-                            同步到云端
-                        </button>
+                        <input type="text" id="company" required placeholder="所属公司" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
+                        <textarea id="content" rows="4" required placeholder="核心内容..." class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                        <input type="text" id="follow_up" required placeholder="后续待办" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button type="submit" id="saveBtn" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl shadow-xl transition-all">同步记录</button>
                     </form>
                 </div>
             </div>
 
-            <!-- 数据列表 -->
             <div class="lg:col-span-8 space-y-4">
-                <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3">
-                    <div class="pl-2 text-slate-300">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-3">
                     <input type="text" id="search" placeholder="搜索关键词..." class="w-full bg-transparent outline-none text-sm font-medium">
                 </div>
-
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50 text-[10px] text-slate-400 font-black uppercase tracking-widest border-b">
-                                <tr>
-                                    <th class="px-6 py-5">日期与人员</th>
-                                    <th class="px-6 py-5">内容摘要</th>
-                                    <th class="px-6 py-5 text-center">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="logList" class="divide-y divide-slate-100 text-sm">
-                                <!-- JS Loading -->
-                            </tbody>
-                        </table>
-                    </div>
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] text-slate-400 font-black uppercase tracking-widest border-b">
+                            <tr>
+                                <th class="px-6 py-5">时间/人员</th>
+                                <th class="px-6 py-5">内容摘要</th>
+                                <th class="px-6 py-5 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logList" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
                     <div id="loader" class="py-20 text-center flex flex-col items-center">
-                        <div class="w-6 h-6 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-                        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Loading from D1</p>
+                        <div class="w-6 h-6 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-2"></div>
+                        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Loading...</p>
                     </div>
                 </div>
             </div>
@@ -116,23 +80,8 @@
     </div>
 
     <script>
-        // 配置您的后端地址
         const API_BASE = "https://work-log-api.lukinzpkjstk.workers.dev";
-
         let allLogs = [];
-
-        // 统一 Fetch 封装
-        async function fetchAPI(path, options = {}) {
-            const pwd = sessionStorage.getItem('app_token');
-            const headers = { 
-                ...options.headers, 
-                'X-Auth-Key': pwd,
-                'Content-Type': 'application/json'
-            };
-            const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
-            if (response.status === 401) { doLogout(); throw "Auth Error"; }
-            return response;
-        }
 
         async function doLogin() {
             const pwdInput = document.getElementById('pw');
@@ -142,15 +91,22 @@
             btn.innerText = "正在验证...";
             try {
                 // 测试连接：获取一次数据尝试
-                const res = await fetch(`${API_BASE}/api/logs`, { headers: { 'X-Auth-Key': pwdInput.value } });
+                const res = await fetch(`${API_BASE}/api/logs`, { 
+                    headers: { 'X-Auth-Key': pwdInput.value.trim() } 
+                });
+                
                 if (res.ok) {
-                    sessionStorage.setItem('app_token', pwdInput.value);
+                    sessionStorage.setItem('app_token', pwdInput.value.trim());
                     unlockApp();
-                } else { throw "Unauthorized"; }
+                } else {
+                    const data = await res.json();
+                    throw new Error(data.error || "Password Incorrect");
+                }
             } catch (e) {
+                err.innerText = "验证失败: " + e.message;
                 err.style.opacity = '1';
                 btn.innerText = "验证并解锁";
-                setTimeout(() => err.style.opacity = '0', 2000);
+                setTimeout(() => err.style.opacity = '0', 3000);
             }
         }
 
@@ -160,14 +116,13 @@
             refreshLogs();
         }
 
-        function doLogout() {
-            sessionStorage.removeItem('app_token');
-            location.reload();
-        }
+        function doLogout() { sessionStorage.removeItem('app_token'); location.reload(); }
 
         async function refreshLogs() {
             try {
-                const res = await fetchAPI('/api/logs');
+                const res = await fetch(`${API_BASE}/api/logs`, { 
+                    headers: { 'X-Auth-Key': sessionStorage.getItem('app_token') } 
+                });
                 allLogs = await res.json();
                 renderTable(allLogs);
                 document.getElementById('loader').classList.add('hidden');
@@ -177,21 +132,20 @@
         function renderTable(data) {
             const list = document.getElementById('logList');
             list.innerHTML = data.map(log => `
-                <tr class="hover:bg-indigo-50/30 transition-colors">
+                <tr class="hover:bg-indigo-50/30">
                     <td class="px-6 py-5 whitespace-nowrap">
                         <div class="text-[10px] font-bold text-slate-300 mb-0.5">${log.log_date}</div>
                         <div class="text-indigo-600 font-bold">${log.contact}</div>
-                        <div class="text-[10px] text-slate-400 font-medium truncate w-32">${log.company}</div>
                     </td>
                     <td class="px-6 py-5">
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-[10px] px-1.5 bg-slate-100 text-slate-500 rounded font-bold">${log.mode}</span>
-                            <span class="text-[10px] text-orange-600 font-black tracking-tight">后续: ${log.follow_up}</span>
+                            <span class="text-[10px] text-orange-600 font-bold">待办: ${log.follow_up}</span>
                         </div>
                         <p class="text-slate-600 text-xs line-clamp-1">${log.content}</p>
                     </td>
                     <td class="px-6 py-5 text-center">
-                        <button onclick="delLog(${log.id})" class="text-slate-200 hover:text-red-500 transition-colors p-2">
+                        <button onclick="delLog(${log.id})" class="text-slate-200 hover:text-red-500 p-2 transition-colors">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                     </td>
@@ -203,50 +157,45 @@
             e.preventDefault();
             const btn = document.getElementById('saveBtn');
             btn.disabled = true; btn.innerText = "同步中...";
-
-            const data = {
+            const payload = {
                 log_date: document.getElementById('log_date').value,
                 contact: document.getElementById('contact').value,
                 mode: document.getElementById('mode').value,
                 company: document.getElementById('company').value,
                 content: document.getElementById('content').value,
                 follow_up: document.getElementById('follow_up').value,
-                remarks: document.getElementById('remarks').value
+                remarks: ""
             };
-
-            try {
-                await fetchAPI('/api/logs', { method: 'POST', body: JSON.stringify(data) });
-                document.getElementById('logForm').reset();
-                initDate();
-                await refreshLogs();
-            } finally {
-                btn.disabled = false; btn.innerText = "同步到云端";
-            }
+            await fetch(`${API_BASE}/api/logs`, { 
+                method: 'POST', 
+                headers: { 'X-Auth-Key': sessionStorage.getItem('app_token'), 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            document.getElementById('logForm').reset();
+            document.getElementById('log_date').value = new Date().toISOString().split('T')[0];
+            await refreshLogs();
+            btn.disabled = false; btn.innerText = "同步记录";
         };
 
         async function delLog(id) {
-            if (!confirm("确认删除？")) return;
-            await fetchAPI(`/api/logs/${id}`, { method: 'DELETE' });
-            refreshLogs();
-        }
-
-        function initDate() {
-            document.getElementById('log_date').value = new Date().toISOString().split('T')[0];
+            if (confirm("确认删除？")) {
+                await fetch(`${API_BASE}/api/logs/${id}`, { 
+                    method: 'DELETE', 
+                    headers: { 'X-Auth-Key': sessionStorage.getItem('app_token') } 
+                });
+                refreshLogs();
+            }
         }
 
         window.onload = () => {
-            initDate();
+            document.getElementById('log_date').value = new Date().toISOString().split('T')[0];
             if (sessionStorage.getItem('app_token')) unlockApp();
             document.getElementById('pw').addEventListener('keypress', (e) => e.key === 'Enter' && doLogin());
         };
 
         document.getElementById('search').oninput = (e) => {
             const q = e.target.value.toLowerCase();
-            renderTable(allLogs.filter(l => 
-                l.contact.toLowerCase().includes(q) || 
-                l.company.toLowerCase().includes(q) || 
-                l.content.toLowerCase().includes(q)
-            ));
+            renderTable(allLogs.filter(l => l.contact.toLowerCase().includes(q) || l.company.toLowerCase().includes(q) || l.content.toLowerCase().includes(q)));
         };
     </script>
 </body>
