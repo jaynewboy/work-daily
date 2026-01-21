@@ -3,133 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工作随手记 - 智能管理版</title>
+    <title>工作随手记 Pro - 智能统计与编辑</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        #appContainer.locked { filter: blur(25px); pointer-events: none; }
-        .transition-soft { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1rem; }
+        #appContainer.locked { filter: blur(30px); pointer-events: none; }
+        .modal-active { overflow: hidden; }
+        .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1rem; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900 font-sans">
 
     <!-- 验证遮罩层 -->
-    <div id="authLayer" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-md transition-soft">
-        <div class="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-sm mx-4 text-center">
-            <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            </div>
-            <h2 class="text-2xl font-black mb-2 tracking-tight">身份验证</h2>
-            <p class="text-slate-400 text-sm mb-8">输入访问密码同步 D1 数据库</p>
-            <input type="password" id="pw" placeholder="••••••" class="w-full px-6 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-center text-3xl tracking-[0.4em] mb-4 transition-soft">
-            <button onclick="handleAuth()" id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-soft active:scale-95">解锁系统</button>
+    <div id="authLayer" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-xl transition-all">
+        <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm mx-4 text-center">
+            <h2 class="text-3xl font-black mb-2 tracking-tighter">安全锁</h2>
+            <p class="text-slate-400 text-sm mb-8">请输入管理密码以同步 D1</p>
+            <input type="password" id="pw" placeholder="••••••" class="w-full px-6 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-center text-3xl tracking-[0.5em] mb-6 transition-all">
+            <button onclick="handleAuth()" id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl transition-all active:scale-95">解锁进入</button>
             <p id="authError" class="text-red-500 text-xs mt-4 opacity-0 font-medium">密码校验失败</p>
         </div>
     </div>
 
-    <!-- 主界面 -->
-    <div id="appContainer" class="locked max-w-6xl mx-auto px-4 py-8 lg:py-12 transition-soft">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
-            <div>
-                <h1 class="text-4xl font-black text-slate-900 tracking-tighter italic">WorkLog<span class="text-blue-600">.</span></h1>
-                <div class="flex items-center gap-2 mt-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">D1 Cloud Storage Active</p>
-                </div>
+    <!-- 编辑模态框 -->
+    <div id="editModal" class="fixed inset-0 z-[110] hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-black text-xl tracking-tight text-slate-800">编辑记录</h3>
+                <button onclick="closeEditModal()" class="text-slate-300 hover:text-slate-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
             </div>
-            <button onclick="handleLogout()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-red-500 bg-white rounded-xl shadow-sm border transition-colors">退出登录</button>
+            <form id="editForm" class="p-8 space-y-4">
+                <input type="hidden" id="edit_id">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="date" id="edit_log_date" required class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="edit_contact" required placeholder="对接人" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <select id="edit_company" required class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="市公司">市公司</option>
+                        <option value="东区公司">东区公司</option>
+                        <option value="西区公司">西区公司</option>
+                        <option value="仁和区公司">仁和区公司</option>
+                        <option value="钒高公司">钒高公司</option>
+                        <option value="盐边公司">盐边公司</option>
+                        <option value="米易公司">米易公司</option>
+                    </select>
+                    <select id="edit_mode" required class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="电话">电话</option>
+                        <option value="微信">微信</option>
+                        <option value="现场">现场</option>
+                    </select>
+                </div>
+                <textarea id="edit_content" rows="3" required placeholder="工作内容" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                <input type="text" id="edit_follow_up" required placeholder="后续处理" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="closeEditModal()" class="flex-1 px-6 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition-all">取消</button>
+                    <button type="submit" class="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">更新保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="appContainer" class="locked max-w-7xl mx-auto px-4 py-8 lg:py-12 transition-all">
+        <header class="flex justify-between items-center mb-10">
+            <h1 class="text-3xl font-black text-slate-900 tracking-tighter">WorkLog<span class="text-blue-600">.</span></h1>
+            <button onclick="handleLogout()" class="px-4 py-2 text-xs font-bold text-slate-400 hover:text-red-500 bg-white rounded-xl shadow-sm border">登出系统</button>
         </header>
 
+        <!-- 统计汇总卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">本周汇总</p>
+                <div class="flex items-baseline gap-2">
+                    <span id="statWeek" class="text-3xl font-black text-blue-600">0</span>
+                    <span class="text-xs text-slate-400 font-medium font-bold">次沟通</span>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">本月累计</p>
+                <div class="flex items-baseline gap-2">
+                    <span id="statMonth" class="text-3xl font-black text-indigo-600">0</span>
+                    <span class="text-xs text-slate-400 font-medium font-bold">次记录</span>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">年度总计</p>
+                <div class="flex items-baseline gap-2">
+                    <span id="statYear" class="text-3xl font-black text-slate-900">0</span>
+                    <span class="text-xs text-slate-400 font-medium font-bold">条同步</span>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            <!-- 数据录入 -->
+            <!-- 录入面板 -->
             <div class="lg:col-span-4">
                 <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 sticky top-8">
-                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
-                        <span class="w-4 h-4 bg-blue-100 rounded-full inline-block"></span>
-                        新增工作记录
-                    </h3>
-                    <form id="logForm" class="space-y-5">
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-tighter">日期</label>
-                            <input type="date" id="log_date" required class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-soft font-medium text-slate-600">
-                        </div>
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8">新增工作记录</h3>
+                    <form id="logForm" class="space-y-4">
+                        <input type="date" id="log_date" required class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium text-slate-600">
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-tighter">对接人</label>
-                                <input type="text" id="contact" required placeholder="姓名" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-soft">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-tighter">方式</label>
-                                <select id="mode" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-soft">
-                                    <option value="电话">电话</option>
-                                    <option value="微信">微信</option>
-                                    <option value="现场">现场</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-tighter">所属公司</label>
-                            <select id="company" required class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-soft">
-                                <option value="" disabled selected>请选择所属公司</option>
-                                <option value="市公司">市公司</option>
-                                <option value="东区公司">东区公司</option>
-                                <option value="西区公司">西区公司</option>
-                                <option value="仁和区公司">仁和区公司</option>
-                                <option value="钒高公司">钒高公司</option>
-                                <option value="盐边公司">盐边公司</option>
-                                <option value="米易公司">米易公司</option>
+                            <input type="text" id="contact" required placeholder="对接人" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                            <select id="mode" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                                <option value="电话">电话</option>
+                                <option value="微信">微信</option>
+                                <option value="现场">现场</option>
                             </select>
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-tighter">具体记录</label>
-                            <textarea id="content" rows="4" required placeholder="请输入沟通细节..." class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-soft"></textarea>
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1 tracking-tighter">后续处理</label>
-                            <input type="text" id="follow_up" required placeholder="待办事项..." class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-soft">
-                        </div>
-                        <button type="submit" id="saveBtn" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl shadow-xl transition-soft active:scale-[0.98] mt-4">
-                            同步至云端
-                        </button>
+                        <select id="company" required class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                            <option value="" disabled selected>选择所属公司</option>
+                            <option value="市公司">市公司</option>
+                            <option value="东区公司">东区公司</option>
+                            <option value="西区公司">西区公司</option>
+                            <option value="仁和区公司">仁和区公司</option>
+                            <option value="钒高公司">钒高公司</option>
+                            <option value="盐边公司">盐边公司</option>
+                            <option value="米易公司">米易公司</option>
+                        </select>
+                        <textarea id="content" rows="4" required placeholder="请输入沟通细节..." class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-all"></textarea>
+                        <input type="text" id="follow_up" required placeholder="后续待办事项..." class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                        <button type="submit" id="saveBtn" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] mt-4">同步至云端</button>
                     </form>
                 </div>
             </div>
 
-            <!-- 数据展示与搜索 -->
+            <!-- 数据展现 -->
             <div class="lg:col-span-8 space-y-6">
-                <!-- 搜索栏 -->
                 <div class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div class="p-2 text-slate-300">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <div class="p-1 text-slate-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <input type="text" id="searchBar" placeholder="通过日期、对接人或公司进行快速过滤..." class="w-full bg-transparent outline-none text-slate-600 font-semibold placeholder:text-slate-300">
-                    <div id="searchCount" class="px-3 py-1 bg-slate-100 text-[10px] font-black text-slate-400 rounded-full whitespace-nowrap">0 记录</div>
+                    <input type="text" id="searchBar" placeholder="快捷检索日期、对接人、内容或公司..." class="w-full bg-transparent outline-none text-slate-600 font-semibold placeholder:text-slate-300">
                 </div>
 
-                <!-- 列表容器 -->
                 <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead>
-                                <tr class="bg-slate-50/50 text-[10px] text-slate-400 font-black uppercase tracking-widest border-b">
+                            <thead class="bg-slate-50/50 text-[10px] text-slate-400 font-black uppercase tracking-widest border-b">
+                                <tr>
                                     <th class="px-8 py-5">概览</th>
-                                    <th class="px-8 py-5">工作记录</th>
-                                    <th class="px-8 py-5 text-right">管理</th>
+                                    <th class="px-8 py-5">记录详情</th>
+                                    <th class="px-8 py-5 text-right">操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="dataTable" class="divide-y divide-slate-100 text-sm">
-                                <!-- JS填充 -->
-                            </tbody>
+                            <tbody id="dataTable" class="divide-y divide-slate-100 text-sm"></tbody>
                         </table>
                     </div>
-                    <!-- 加载状态 -->
                     <div id="syncLoader" class="py-24 text-center flex flex-col items-center">
                         <div class="w-8 h-8 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin mb-4"></div>
                         <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">Connecting D1 Engine</p>
-                    </div>
-                    <!-- 空状态 -->
-                    <div id="emptyState" class="hidden py-24 text-center">
-                        <p class="text-slate-300 font-medium italic">未找到匹配的相关内容</p>
                     </div>
                 </div>
             </div>
@@ -140,25 +165,17 @@
         const API_BASE = "https://work-log-api.lukinzpkjstk.workers.dev";
         let masterData = [];
 
-        // 核心请求封装
         async function cloudRequest(path, options = {}) {
             const token = sessionStorage.getItem('auth_token');
-            const headers = { 
-                ...options.headers, 
-                'X-Auth-Key': token,
-                'Content-Type': 'application/json'
-            };
+            const headers = { ...options.headers, 'X-Auth-Key': token, 'Content-Type': 'application/json' };
             const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
-            if (response.status === 401) { handleLogout(); throw "Unauthorized"; }
+            if (response.status === 401) { handleLogout(); throw "Auth Expired"; }
             return response;
         }
 
-        // 验证逻辑
         async function handleAuth() {
             const pwInput = document.getElementById('pw');
             const btn = document.getElementById('loginBtn');
-            const err = document.getElementById('authError');
-            
             btn.innerText = "校验中...";
             try {
                 const res = await fetch(`${API_BASE}/api/logs`, { headers: { 'X-Auth-Key': pwInput.value.trim() } });
@@ -167,9 +184,9 @@
                     openApp();
                 } else { throw "Error"; }
             } catch (e) {
-                err.style.opacity = '1';
-                btn.innerText = "解锁系统";
-                setTimeout(() => err.style.opacity = '0', 2500);
+                document.getElementById('authError').style.opacity = '1';
+                btn.innerText = "解锁进入";
+                setTimeout(() => document.getElementById('authError').style.opacity = '0', 2500);
             }
         }
 
@@ -179,72 +196,104 @@
             fetchLatestLogs();
         }
 
-        function handleLogout() {
-            sessionStorage.removeItem('auth_token');
-            location.reload();
-        }
+        function handleLogout() { sessionStorage.removeItem('auth_token'); location.reload(); }
 
-        // 数据同步
         async function fetchLatestLogs() {
             try {
                 const res = await cloudRequest('/api/logs');
                 masterData = await res.json();
                 renderUI(masterData);
+                calculateStats(masterData);
                 document.getElementById('syncLoader').classList.add('hidden');
-            } catch (e) { console.error(e); }
+            } catch (e) {}
         }
 
-        // 渲染函数 (包含关键词过滤逻辑)
+        function calculateStats(data) {
+            const now = new Date();
+            const nowTime = now.getTime();
+            
+            // 周统计 (本周一至今)
+            const day = now.getDay() || 7;
+            const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1);
+            
+            const weekLogs = data.filter(l => new Date(l.log_date) >= weekStart);
+            const monthLogs = data.filter(l => l.log_date.startsWith(now.toISOString().slice(0, 7)));
+            const yearLogs = data.filter(l => l.log_date.startsWith(now.getFullYear().toString()));
+
+            document.getElementById('statWeek').innerText = weekLogs.length;
+            document.getElementById('statMonth').innerText = monthLogs.length;
+            document.getElementById('statYear').innerText = yearLogs.length;
+        }
+
         function renderUI(data) {
             const table = document.getElementById('dataTable');
-            const empty = document.getElementById('emptyState');
-            const count = document.getElementById('searchCount');
-            
-            count.innerText = `${data.length} 记录`;
-
-            if (data.length === 0) {
-                table.innerHTML = "";
-                empty.classList.remove('hidden');
-                return;
-            }
-
-            empty.classList.add('hidden');
             table.innerHTML = data.map(log => `
                 <tr class="hover:bg-blue-50/20 transition-all group">
                     <td class="px-8 py-6">
                         <div class="text-[10px] font-black text-slate-300 mb-1 tracking-tighter uppercase">${log.log_date}</div>
                         <div class="text-blue-600 font-black text-base">${log.contact}</div>
-                        <div class="inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-500">
-                            <span class="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
-                            ${log.company}
-                        </div>
+                        <div class="inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 bg-slate-100 rounded text-[10px] font-bold text-slate-500">${log.company}</div>
                     </td>
                     <td class="px-8 py-6 max-w-md">
                         <div class="flex items-center gap-3 mb-2">
-                            <span class="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md font-black italic uppercase">${log.mode}</span>
-                            <span class="text-[10px] text-orange-600 font-black tracking-tight flex items-center gap-1">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                待办: ${log.follow_up}
-                            </span>
+                            <span class="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded-md font-black uppercase italic">${log.mode}</span>
+                            <span class="text-[10px] text-orange-600 font-black tracking-tight">待办: ${log.follow_up}</span>
                         </div>
                         <p class="text-slate-600 text-xs leading-relaxed line-clamp-2">${log.content}</p>
                     </td>
                     <td class="px-8 py-6 text-right">
-                        <button onclick="removeLog(${log.id})" class="opacity-0 group-hover:opacity-100 transition-all text-slate-200 hover:text-red-500 p-2 rounded-xl hover:bg-red-50">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button onclick='openEditModal(${JSON.stringify(log)})' class="text-slate-300 hover:text-blue-600 p-2 rounded-xl hover:bg-blue-50">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="removeLog(${log.id})" class="text-slate-300 hover:text-red-500 p-2 rounded-xl hover:bg-red-50">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('');
         }
 
-        // 保存操作
+        // 编辑逻辑
+        function openEditModal(log) {
+            document.getElementById('edit_id').value = log.id;
+            document.getElementById('edit_log_date').value = log.log_date;
+            document.getElementById('edit_contact').value = log.contact;
+            document.getElementById('edit_company').value = log.company;
+            document.getElementById('edit_mode').value = log.mode;
+            document.getElementById('edit_content').value = log.content;
+            document.getElementById('edit_follow_up').value = log.follow_up;
+            document.getElementById('editModal').classList.remove('hidden');
+            document.body.classList.add('modal-active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            document.body.classList.remove('modal-active');
+        }
+
+        document.getElementById('editForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit_id').value;
+            const payload = {
+                log_date: document.getElementById('edit_log_date').value,
+                contact: document.getElementById('edit_contact').value,
+                company: document.getElementById('edit_company').value,
+                mode: document.getElementById('edit_mode').value,
+                content: document.getElementById('edit_content').value,
+                follow_up: document.getElementById('edit_follow_up').value
+            };
+            await cloudRequest(`/api/logs/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+            closeEditModal();
+            fetchLatestLogs();
+        };
+
+        // 新增与删除
         document.getElementById('logForm').onsubmit = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('saveBtn');
-            btn.disabled = true;
-            btn.innerText = "正在加密同步...";
-
+            btn.disabled = true; btn.innerText = "正在同步...";
             const payload = {
                 log_date: document.getElementById('log_date').value,
                 contact: document.getElementById('contact').value,
@@ -253,46 +302,27 @@
                 content: document.getElementById('content').value,
                 follow_up: document.getElementById('follow_up').value
             };
-
-            try {
-                await cloudRequest('/api/logs', { method: 'POST', body: JSON.stringify(payload) });
-                document.getElementById('logForm').reset();
-                initBase();
-                await fetchLatestLogs();
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "同步至云端";
-            }
+            await cloudRequest('/api/logs', { method: 'POST', body: JSON.stringify(payload) });
+            document.getElementById('logForm').reset();
+            initBase();
+            fetchLatestLogs();
+            btn.disabled = false; btn.innerText = "同步至云端";
         };
 
         async function removeLog(id) {
-            if (!confirm("确定永久从云端移除该记录？")) return;
+            if (!confirm("确定移除该记录？")) return;
             await cloudRequest(`/api/logs/${id}`, { method: 'DELETE' });
             fetchLatestLogs();
         }
 
-        function initBase() {
-            document.getElementById('log_date').value = new Date().toISOString().split('T')[0];
-        }
+        function initBase() { document.getElementById('log_date').value = new Date().toISOString().split('T')[0]; }
 
-        // --- 核心优化：搜索过滤逻辑 ---
         document.getElementById('searchBar').oninput = (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            if (!query) {
-                renderUI(masterData);
-                return;
-            }
-
-            const filtered = masterData.filter(item => 
-                item.log_date.includes(query) || 
-                item.contact.toLowerCase().includes(query) || 
-                item.company.toLowerCase().includes(query) ||
-                item.content.toLowerCase().includes(query)
-            );
+            const q = e.target.value.toLowerCase().trim();
+            const filtered = masterData.filter(i => i.log_date.includes(q) || i.contact.toLowerCase().includes(q) || i.company.includes(q) || i.content.toLowerCase().includes(q));
             renderUI(filtered);
         };
 
-        // 页面启动
         window.onload = () => {
             initBase();
             if (sessionStorage.getItem('auth_token')) openApp();
