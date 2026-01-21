@@ -3,14 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>杰哥专用工作随手记 Pro - 随时随地记录</title>
+    <title>杰哥专用工作随手记 Pro - 随心所记</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         #appContainer.locked { filter: blur(30px); pointer-events: none; }
         .stat-card.active { border-color: #3b82f6; background-color: #eff6ff; }
         .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .dropdown:hover .dropdown-menu { display: block; }
-        select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1rem; }
+        
+        /* 修复后的下拉菜单逻辑 */
+        .dropdown-container:hover .dropdown-menu { 
+            display: block; 
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .dropdown-menu {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+            /* 关键修复：通过 padding-top 创建一个无形桥梁，填补菜单和按钮之间的间隙 */
+            padding-top: 12px; 
+            margin-top: -4px;
+        }
+        
+        select { 
+            appearance: none; 
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); 
+            background-repeat: no-repeat; 
+            background-position: right 0.75rem center; 
+            background-size: 1rem; 
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900 font-sans">
@@ -18,20 +42,22 @@
     <!-- 验证层 -->
     <div id="authLayer" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/95 backdrop-blur-xl transition-all">
         <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm mx-4 text-center">
-            <h2 class="text-3xl font-black mb-2 tracking-tighter">身份确认中</h2>
-            <p class="text-slate-400 text-sm mb-8">验证身份以访问网站内容</p>
+            <h2 class="text-3xl font-black mb-2 tracking-tighter"身份验证</h2>
+            <p class="text-slate-400 text-sm mb-8">输入管理密码以确认访问身份</p>
             <input type="password" id="pw" placeholder="••••••" class="w-full px-6 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none text-center text-3xl tracking-[0.5em] mb-6">
             <button onclick="handleAuth()" id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl transition-all active:scale-95">验证并同步</button>
-            <p id="authError" class="text-red-500 text-xs mt-4 opacity-0 font-medium">验证失败</p>
+            <p id="authError" class="text-red-500 text-xs mt-4 opacity-0 font-medium">访问密码错误</p>
         </div>
     </div>
 
-    <!-- 编辑模态框 (略) -->
+    <!-- 编辑模态框 -->
     <div id="editModal" class="fixed inset-0 z-[110] hidden flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
         <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden">
             <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h3 class="font-black text-xl tracking-tight">编辑工作内容</h3>
-                <button onclick="closeEditModal()" class="text-slate-300 hover:text-slate-500"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                <h3 class="font-black text-xl tracking-tight text-slate-800 uppercase">编辑工作记录</h3>
+                <button onclick="closeEditModal()" class="text-slate-300 hover:text-slate-500 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
             </div>
             <form id="editForm" class="p-8 space-y-4">
                 <input type="hidden" id="edit_id">
@@ -40,7 +66,7 @@
                     <input type="text" id="edit_contact" required placeholder="对接人" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <select id="edit_company" required class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none">
+                    <select id="edit_company" required class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="市公司">市公司</option>
                         <option value="东区公司">东区公司</option>
                         <option value="西区公司">西区公司</option>
@@ -49,17 +75,17 @@
                         <option value="盐边公司">盐边公司</option>
                         <option value="米易公司">米易公司</option>
                     </select>
-                    <select id="edit_mode" required class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none">
+                    <select id="edit_mode" required class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="电话">电话</option>
                         <option value="微信">微信</option>
                         <option value="现场">现场</option>
                     </select>
                 </div>
-                <textarea id="edit_content" rows="3" required placeholder="内容细节" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                <input type="text" id="edit_follow_up" required placeholder="后续待办" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none">
+                <textarea id="edit_content" rows="3" required placeholder="工作内容" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                <input type="text" id="edit_follow_up" required placeholder="后续处理情况" class="w-full px-4 py-3 bg-slate-50 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 <div class="flex gap-4 pt-4">
-                    <button type="button" onclick="closeEditModal()" class="flex-1 px-6 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl">取消</button>
-                    <button type="submit" class="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100">确认更新</button>
+                    <button type="button" onclick="closeEditModal()" class="flex-1 px-6 py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200">取消</button>
+                    <button type="submit" class="flex-1 px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all">确认保存</button>
                 </div>
             </form>
         </div>
@@ -70,30 +96,33 @@
         <header class="flex justify-between items-center mb-10">
             <div>
                 <h1 class="text-3xl font-black text-slate-900 tracking-tighter italic">WorkLog<span class="text-blue-600">.</span></h1>
-                <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Management & Analytics Powered</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Data Storage: Cloudflare D1</p>
             </div>
-            <div class="flex items-center gap-3">
-                <!-- 管理菜单 -->
-                <div class="dropdown relative inline-block">
-                    <button class="px-4 py-2 text-xs font-bold text-slate-600 bg-white rounded-xl shadow-sm border flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-                        数据管理
-                    </button>
-                    <div class="dropdown-menu absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl hidden z-50 overflow-hidden">
-                        <button onclick="exportToCSV()" class="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-50">
-                            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            
+            <!-- 修复后的管理按钮菜单 -->
+            <div class="dropdown-container relative inline-block">
+                <button class="px-5 py-2.5 text-xs font-bold text-slate-600 bg-white rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    数据管理
+                </button>
+                <div class="dropdown-menu absolute right-0 w-52 z-50">
+                    <div class="bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden py-1">
+                        <button onclick="exportToCSV()" class="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-3 transition-colors">
+                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             导出 CSV 报表
                         </button>
-                        <button onclick="downloadBackup()" class="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-50">
+                        <button onclick="downloadBackup()" class="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-3 transition-colors">
                             <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             下载本地备份 (JSON)
                         </button>
-                        <label class="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2 cursor-pointer border-b border-slate-50">
-                            <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4-4m4 4v12"></path></svg>
+                        <label class="w-full text-left px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-3 cursor-pointer transition-colors">
+                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4-4m4 4v12"></path></svg>
                             从备份文件恢复
                             <input type="file" id="restoreFile" accept=".json" class="hidden" onchange="restoreFromBackup(event)">
                         </label>
-                        <button onclick="handleLogout()" class="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-2">
+                        <div class="border-t border-slate-50 my-1"></div>
+                        <button onclick="handleLogout()" class="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:bg-red-50 flex items-center gap-3 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                             退出系统
                         </button>
                     </div>
@@ -103,35 +132,45 @@
 
         <!-- 统计面板 -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div id="cardWeek" onclick="setStatFilter('week')" class="stat-card cursor-pointer bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm transition-all hover:-translate-y-1">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">本周记录</p>
-                <span id="statWeek" class="text-4xl font-black text-blue-600">0</span>
+            <div id="cardWeek" onclick="setStatFilter('week')" class="stat-card bg-white p-7 rounded-[2rem] border-2 border-slate-100 shadow-sm transition-all cursor-pointer">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">本周记录 (点击筛选)</p>
+                <div class="flex items-baseline gap-2">
+                    <span id="statWeek" class="text-4xl font-black text-blue-600">0</span>
+                    <span class="text-xs text-slate-400 font-bold">条目</span>
+                </div>
             </div>
-            <div id="cardMonth" onclick="setStatFilter('month')" class="stat-card cursor-pointer bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm transition-all hover:-translate-y-1">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">本月累计</p>
-                <span id="statMonth" class="text-4xl font-black text-indigo-600">0</span>
+            <div id="cardMonth" onclick="setStatFilter('month')" class="stat-card bg-white p-7 rounded-[2rem] border-2 border-slate-100 shadow-sm transition-all cursor-pointer">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">本月记录 (点击筛选)</p>
+                <div class="flex items-baseline gap-2">
+                    <span id="statMonth" class="text-4xl font-black text-indigo-600">0</span>
+                    <span class="text-xs text-slate-400 font-bold">条目</span>
+                </div>
             </div>
-            <div id="cardYear" onclick="setStatFilter('year')" class="stat-card cursor-pointer bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm transition-all hover:-translate-y-1">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">年度总计</p>
-                <span id="statYear" class="text-4xl font-black text-slate-900">0</span>
+            <div id="cardYear" onclick="setStatFilter('year')" class="stat-card bg-white p-7 rounded-[2rem] border-2 border-slate-100 shadow-sm transition-all cursor-pointer">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">年度记录 (点击筛选)</p>
+                <div class="flex items-baseline gap-2">
+                    <span id="statYear" class="text-4xl font-black text-slate-900">0</span>
+                    <span class="text-xs text-slate-400 font-bold">条目</span>
+                </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <!-- 录入面板 -->
             <div class="lg:col-span-4">
-                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 sticky top-8">
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 sticky top-8">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-8">新增工作记录</h3>
                     <form id="logForm" class="space-y-4">
-                        <input type="date" id="log_date" required class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="date" id="log_date" required class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium">
                         <div class="grid grid-cols-2 gap-4">
-                            <input type="text" id="contact" required placeholder="对接人" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none">
-                            <select id="mode" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none">
+                            <input type="text" id="contact" required placeholder="对接人" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500">
+                            <select id="mode" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                                 <option value="电话">电话</option>
                                 <option value="微信">微信</option>
                                 <option value="现场">现场</option>
                             </select>
                         </div>
-                        <select id="company" required class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none">
+                        <select id="company" required class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                             <option value="" disabled selected>选择公司</option>
                             <option value="市公司">市公司</option>
                             <option value="东区公司">东区公司</option>
@@ -141,30 +180,33 @@
                             <option value="盐边公司">盐边公司</option>
                             <option value="米易公司">米易公司</option>
                         </select>
-                        <textarea id="content" rows="4" required placeholder="具体内容细节..." class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none resize-none"></textarea>
-                        <input type="text" id="follow_up" required placeholder="后续待办事项" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none">
-                        <button type="submit" id="saveBtn" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98]">同步记录至 D1</button>
+                        <textarea id="content" rows="4" required placeholder="沟通内容..." class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                        <input type="text" id="follow_up" required placeholder="后续待办" class="w-full px-4 py-3 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" id="saveBtn" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl transition-all active:scale-[0.98] mt-4 uppercase tracking-widest text-sm">Save to D1</button>
                     </form>
                 </div>
             </div>
 
-            <!-- 数据呈现 -->
+            <!-- 数据展示 -->
             <div class="lg:col-span-8 space-y-6">
-                <div class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-slate-200 flex items-center justify-between gap-4">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 flex items-center justify-between gap-4">
                     <div class="flex items-center gap-4 flex-1">
                         <div class="p-1 text-slate-300"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
-                        <input type="text" id="searchBar" placeholder="快捷搜索全字段记录..." class="w-full bg-transparent outline-none text-slate-600 font-semibold placeholder:text-slate-300">
+                        <input type="text" id="searchBar" placeholder="快捷检索日期、对接人、公司..." class="w-full bg-transparent outline-none text-slate-600 font-semibold placeholder:text-slate-300">
+                    </div>
+                    <div id="filterIndicator" class="hidden px-3 py-1 bg-blue-100 text-blue-600 text-[10px] font-black rounded-full uppercase tracking-tighter animate-pulse">
+                        周期筛选中
                     </div>
                 </div>
 
-                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden min-h-[500px]">
+                <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50 text-[10px] text-slate-400 font-black uppercase tracking-widest border-b">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50/50 text-[10px] text-slate-400 font-black uppercase tracking-widest border-b">
                                 <tr>
-                                    <th class="px-8 py-5">记录概览</th>
-                                    <th class="px-8 py-5">详细内容</th>
-                                    <th class="px-8 py-5 text-right">管理</th>
+                                    <th class="px-8 py-5">时间/人员</th>
+                                    <th class="px-8 py-5">内容摘要</th>
+                                    <th class="px-8 py-5 text-right">操作</th>
                                 </tr>
                             </thead>
                             <tbody id="dataTable" class="divide-y divide-slate-100 text-sm"></tbody>
@@ -172,6 +214,9 @@
                     </div>
                     <div id="syncLoader" class="py-24 text-center flex flex-col items-center">
                         <div class="w-8 h-8 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
+                    </div>
+                    <div id="emptyState" class="hidden py-24 text-center">
+                        <p class="text-slate-300 font-medium italic">未找到匹配的相关记录</p>
                     </div>
                 </div>
             </div>
@@ -181,7 +226,7 @@
     <script>
         const API_BASE = "https://work-log-api.lukinzpkjstk.workers.dev";
         let masterData = [];
-        let filteredData = []; // 用于导出的当前筛选结果
+        let filteredData = [];
         let activeStatFilter = 'all';
 
         async function cloudRequest(path, options = {}) {
@@ -228,7 +273,11 @@
         function setStatFilter(type) {
             activeStatFilter = (activeStatFilter === type) ? 'all' : type;
             document.querySelectorAll('.stat-card').forEach(c => c.classList.remove('active'));
-            if (activeStatFilter !== 'all') document.getElementById('card' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+            document.getElementById('filterIndicator').classList.add('hidden');
+            if (activeStatFilter !== 'all') {
+                document.getElementById('card' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+                document.getElementById('filterIndicator').classList.remove('hidden');
+            }
             applyCombinedFilters();
         }
 
@@ -251,24 +300,28 @@
                 result = result.filter(i => Object.values(i).some(v => String(v).toLowerCase().includes(searchQuery)));
             }
 
-            filteredData = result; // 更新全局变量，供导出使用
+            filteredData = result;
             renderUI(result);
         }
 
         function renderUI(data) {
             const table = document.getElementById('dataTable');
+            const empty = document.getElementById('emptyState');
+            if (data.length === 0) { table.innerHTML = ""; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
             table.innerHTML = data.map(log => `
                 <tr class="hover:bg-blue-50/20 group transition-all">
                     <td class="px-8 py-6">
-                        <div class="text-[10px] font-black text-slate-300 mb-1">${log.log_date}</div>
-                        <div class="text-blue-600 font-black text-base">${log.contact}</div>
-                        <div class="text-[10px] font-bold text-slate-400 mt-1">${log.company}</div>
+                        <div class="text-[10px] font-black text-slate-300 mb-1 tracking-tighter">${log.log_date}</div>
+                        <div class="text-blue-600 font-black text-base leading-none">${log.contact}</div>
+                        <div class="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest">${log.company}</div>
                     </td>
                     <td class="px-8 py-6 max-w-md">
-                        <p class="text-slate-600 text-xs mb-2 leading-relaxed">${log.content}</p>
-                        <div class="flex items-center gap-2 text-[10px] font-bold text-orange-600 uppercase italic">
-                            [${log.mode}] 待办: ${log.follow_up}
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-[10px] px-2 py-0.5 bg-indigo-50 text-indigo-500 rounded font-black italic">${log.mode}</span>
+                            <span class="text-[10px] text-orange-600 font-bold tracking-tight">后续: ${log.follow_up}</span>
                         </div>
+                        <p class="text-slate-600 text-xs leading-relaxed line-clamp-2">${log.content}</p>
                     </td>
                     <td class="px-8 py-6 text-right">
                         <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -280,87 +333,41 @@
             `).join('');
         }
 
-        // --- 核心新增：数据备份与恢复逻辑 ---
-
-        // 1. 下载备份 (JSON)
-        function downloadBackup() {
-            const dataStr = JSON.stringify(masterData, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
+        // --- 管理功能 ---
+        function exportToCSV() {
+            if (filteredData.length === 0) return alert("无导出数据");
+            const headers = ["日期", "对接人", "所属公司", "方式", "内容内容", "后续处理"];
+            const rows = filteredData.map(i => [i.log_date, i.contact, i.company, i.mode, i.content.replace(/\n/g, " "), i.follow_up]);
+            let csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(r => r.join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const link = document.createElement("a");
-            link.href = url;
-            link.download = `WorkLog_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+            link.href = URL.createObjectURL(blob);
+            link.download = `WorkLog_${new Date().toISOString().slice(0, 10)}.csv`;
             link.click();
-            URL.revokeObjectURL(url);
         }
 
-        // 2. 从备份恢复 (JSON)
+        function downloadBackup() {
+            const blob = new Blob([JSON.stringify(masterData, null, 2)], { type: "application/json" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `WorkLog_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+            link.click();
+        }
+
         async function restoreFromBackup(event) {
             const file = event.target.files[0];
-            if (!file) return;
-
-            if (!confirm("恢复备份将向现有数据库追加数据，确定继续吗？")) {
-                event.target.value = "";
-                return;
-            }
-
+            if (!file || !confirm("将向云端恢复数据，确定继续？")) return;
             const reader = new FileReader();
             reader.onload = async (e) => {
-                try {
-                    const items = JSON.parse(e.target.result);
-                    if (!Array.isArray(items)) throw new Error("无效的备份文件");
-
-                    const btn = document.querySelector('.dropdown-menu button:nth-child(3)');
-                    document.getElementById('syncLoader').classList.remove('hidden');
-                    
-                    await cloudRequest('/api/logs/bulk', {
-                        method: 'POST',
-                        body: JSON.stringify(items)
-                    });
-
-                    alert(`成功恢复 ${items.length} 条记录！`);
-                    fetchLatestLogs();
-                } catch (err) {
-                    alert("恢复失败：" + err.message);
-                } finally {
-                    event.target.value = "";
-                    document.getElementById('syncLoader').classList.add('hidden');
-                }
+                const items = JSON.parse(e.target.result);
+                document.getElementById('syncLoader').classList.remove('hidden');
+                await cloudRequest('/api/logs/bulk', { method: 'POST', body: JSON.stringify(items) });
+                alert(`恢复成功！`);
+                fetchLatestLogs();
             };
             reader.readAsText(file);
         }
 
-        // 3. 导出当前筛选出的数据 (CSV)
-        function exportToCSV() {
-            if (filteredData.length === 0) {
-                alert("当前没有可导出的数据记录");
-                return;
-            }
-
-            const headers = ["日期", "对接人", "所属公司", "方式", "内容内容", "后续处理", "备注"];
-            const rows = filteredData.map(i => [
-                i.log_date,
-                i.contact,
-                i.company,
-                i.mode,
-                i.content.replace(/\n/g, " "), // 避免 CSV 换行
-                i.follow_up,
-                i.remarks || ""
-            ]);
-
-            // 添加 BOM (uFEFF) 以确保 Excel 识别 UTF-8 编码，解决中文乱码
-            let csvContent = "\uFEFF" + headers.join(",") + "\n" + rows.map(r => r.join(",")).join("\n");
-            
-            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `工作记录导出_${new Date().toISOString().slice(0, 10)}.csv`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // --- 存量功能支持 ---
         function updateStatsPanel(data) {
             const now = new Date();
             const day = now.getDay() || 7;
@@ -401,8 +408,6 @@
 
         document.getElementById('logForm').onsubmit = async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = true;
             const payload = {
                 log_date: document.getElementById('log_date').value,
                 contact: document.getElementById('contact').value,
@@ -415,14 +420,10 @@
             document.getElementById('logForm').reset();
             document.getElementById('log_date').value = new Date().toISOString().split('T')[0];
             fetchLatestLogs();
-            btn.disabled = false;
         };
 
         async function removeLog(id) {
-            if (confirm("确定删除？")) {
-                await cloudRequest(`/api/logs/${id}`, { method: 'DELETE' });
-                fetchLatestLogs();
-            }
+            if (confirm("确定删除？")) { await cloudRequest(`/api/logs/${id}`, { method: 'DELETE' }); fetchLatestLogs(); }
         }
 
         document.getElementById('searchBar').oninput = applyCombinedFilters;
